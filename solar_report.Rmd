@@ -1,0 +1,176 @@
+---
+title: "Solar Energy Generation Prediction and Renewable Energy Analysis Using R"
+author: "Ch Agil"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    theme: readable
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, warning = FALSE, message = FALSE,
+  fig.align = "center", out.width = "88%"
+)
+library(knitr)
+```
+
+# Introduction
+
+Solar energy is an important renewable energy source, but its output changes with sunlight, temperature, time of day, and operating conditions. Understanding these patterns can help describe generation behaviour and support short-term power estimation.
+
+This case study uses solar generation and weather-sensor data to explore generation patterns and compare regression models for predicting AC power output.
+
+## Problem statement
+
+Solar power generation varies over time and with environmental conditions. The study investigates these patterns and evaluates whether weather and time-related variables can help estimate AC power generation.
+
+## Objectives
+
+1. Explore the distribution and time-based patterns of solar AC power generation.
+2. Examine the relationship between generation, irradiation, and temperature.
+3. Build and compare Linear Regression, Decision Tree Regression, and Random Forest Regression models.
+4. Evaluate model performance using MAE, RMSE, and R-squared.
+
+# Dataset
+
+The study uses the **Solar Power Generation Data** dataset published on Kaggle by *anikannal*. It contains generation readings and weather-sensor measurements from two solar plants.
+
+Source: [Solar Power Generation Data — Kaggle](https://www.kaggle.com/datasets/anikannal/solar-power-generation-data)
+
+| Dataset component | Rows | Columns |
+|---|---:|---:|
+| Generation data | 136,476 | 8 |
+| Weather-sensor data | 6,441 | 7 |
+| Complete modelling data after feature selection and filtering | 67,720 | 10 |
+
+Important generation variables include `DATE_TIME`, `PLANT_ID`, `DC_POWER`, `AC_POWER`, `DAILY_YIELD`, and `TOTAL_YIELD`. Weather variables include `AMBIENT_TEMPERATURE`, `MODULE_TEMPERATURE`, and `IRRADIATION`.
+
+The dataset is suitable because it combines power-generation measurements with environmental variables that may help explain variation in solar output.
+
+# Data Preparation
+
+The data preparation workflow in the R notebook included:
+
+- Loading the four CSV files for the two plants.
+- Standardising column names and combining the generation files and weather files separately.
+- Converting timestamps and checking data types.
+- Checking missing values and duplicate records.
+- Summarising generation and weather variables.
+- Combining generation and weather information by timestamp and plant.
+- Creating time-based predictors such as hour, day, month, and day of week.
+- Selecting complete observations for modelling.
+
+After joining, **68,756 rows had missing weather measurements**. The modelling dataset contained 67,720 complete observations after filtering. This reduction is important when interpreting the model results because the retained rows may not represent every original observation.
+
+# Exploratory Data Analysis
+
+## Distribution of AC power
+
+![Distribution of Solar AC Power Generation](figures/01_ac_power_distribution.png)
+
+The distribution shows that AC power values are concentrated toward the lower end, with a spread of higher generation readings. This is consistent with generation varying across non-generating and generating periods.
+
+## Generation over time
+
+![Solar AC Power Generation Over Time](figures/02_generation_over_time.png)
+
+The time-series plot illustrates how total AC power changes across recorded timestamps. The variation indicates that generation is not constant throughout the observation period.
+
+## Average generation by hour
+
+![Average Solar AC Power by Hour](figures/03_average_power_by_hour.png)
+
+Grouping readings by hour helps reveal the daily generation pattern. Solar generation is expected to be lower during night-time hours and higher during daylight hours.
+
+## Generation and irradiation
+
+![Solar Power Generation vs Irradiation](figures/04_power_vs_irradiation.png)
+
+Irradiation represents the solar energy reaching the sensor. The plotted relationship helps assess how changes in irradiation correspond to AC power output. The figure uses the available non-missing paired observations.
+
+## Generation and module temperature
+
+![Solar Power Generation vs Module Temperature](figures/05_power_vs_module_temperature.png)
+
+Module temperature provides context about panel operating conditions. The scatter plot shows the observed relationship, although temperature alone does not determine power output.
+
+## Correlation between variables
+
+![Correlation Between Solar Generation Variables](figures/06_correlation_heatmap.png)
+
+The correlation heatmap provides a compact view of linear associations among the selected numeric variables. Correlation indicates association, not causation.
+
+# Prediction Models
+
+The target variable was **AC power (`ac_power`)**. Predictors included irradiation, ambient temperature, module temperature, hour, day, month, day of week, and plant identifier.
+
+The notebook split the modelling data into training and testing sets in time order:
+
+| Subset | Observations |
+|---|---:|
+| Training | 54,176 |
+| Testing | 13,544 |
+| Total | 67,720 |
+
+Three regression approaches were compared:
+
+- **Linear Regression:** provides a straightforward baseline and estimates linear relationships between predictors and AC power.
+- **Decision Tree Regression:** models non-linear patterns through successive feature-based splits.
+- **Random Forest Regression:** combines many decision trees to capture more complex relationships and reduce dependence on a single tree.
+
+## Decision tree
+
+![Decision Tree for Solar Power Prediction](figures/07_decision_tree.png)
+
+The tree illustrates how the fitted decision-tree model partitions predictor values to estimate AC power.
+
+# Model Evaluation
+
+The models were evaluated using three standard regression metrics:
+
+- **MAE:** average absolute difference between actual and predicted values; lower is better.
+- **RMSE:** gives greater weight to larger errors; lower is better.
+- **R-squared:** indicates the proportion of variation explained by the model; higher is generally better.
+
+| Model | MAE | RMSE | R-squared |
+|---|---:|---:|---:|
+| Random Forest | 66.33 | 156.42 | 0.695 |
+| Decision Tree | 75.94 | 164.44 | 0.663 |
+| Linear Regression | 98.19 | 171.88 | 0.632 |
+
+In the notebook's evaluation, **Random Forest performed best among the three models**, with the lowest MAE and RMSE and the highest R-squared. Its R-squared value of approximately 0.695 indicates that the model explains about 69.5% of the variation in the test-set target under this modelling setup.
+
+## Actual versus predicted values
+
+![Actual vs Predicted Solar Power](figures/08_actual_vs_predicted.png)
+
+The plot compares Random Forest predictions with observed AC power. Closer alignment with the diagonal reference pattern indicates more accurate predictions; dispersion away from that pattern represents prediction error.
+
+## Model comparison
+
+![Regression Model Evaluation](figures/09_model_comparison.png)
+
+The comparison visualises the differences in model performance. Random Forest has the lowest RMSE in the recorded results, followed by Decision Tree and Linear Regression.
+
+## Predictor importance
+
+![Predictor Importance in Solar Power Prediction](figures/10_variable_importance.png)
+
+The Random Forest importance plot ranks predictors according to their contribution to prediction. Importance is model-specific and should not be interpreted as proof that a variable causes a change in generation.
+
+# Conclusion
+
+This case study explored solar generation patterns, examined relationships between power output and environmental variables, and compared three regression models using R. Based on the recorded test-set metrics, Random Forest gave the strongest performance among the evaluated models, achieving an MAE of 66.33, RMSE of 156.42, and R-squared of 0.695.
+
+The analysis demonstrates an end-to-end data science workflow involving data loading, preprocessing, exploratory visualisation, feature engineering, regression modelling, and evaluation. A key limitation is that many joined records lacked weather measurements and were excluded from modelling. Therefore, the findings should be interpreted as results for the retained modelling data rather than as a guarantee of performance for all solar-generation observations. More reliable conclusions would benefit from further validation of timestamp alignment and weather-data matching.
+
+# References
+
+1. Anikannal. *Solar Power Generation Data*. Kaggle. https://www.kaggle.com/datasets/anikannal/solar-power-generation-data
+2. R Core Team. *R: A Language and Environment for Statistical Computing*. https://www.r-project.org/
+3. Wickham, H. et al. *Tidyverse*. https://www.tidyverse.org/
+4. Liaw, A. and Wiener, M. *Classification and Regression by randomForest*. R package documentation.
